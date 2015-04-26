@@ -27,5 +27,8 @@
   ],
   "devDependencies": {
     "mocha": "*"
+  },
+  "dependencies": {
+    "googleapis": "^2.0.2"
   }
 }
