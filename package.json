@@ -1,7 +1,7 @@
 {
   "name": "gd-pages",
   "version": "0.0.1",
-  "description": "Publish your static to Google Drive server and share",
+  "description": "Publish your static files to Google Drive server and share",
   "license": "MIT",
   "repository": "ButuzGOL/gd-pages",
   "author": {
@@ -13,7 +13,7 @@
     "node": ">=0.10.0"
   },
   "scripts": {
-    "test": "mocha"
+    "test": "echo \"Error: no test specified\" && exit 1"
   },
   "files": [
     "index.js"
@@ -25,9 +25,6 @@
     "share",
     "website"
   ],
-  "devDependencies": {
-    "mocha": "*"
-  },
   "dependencies": {
     "googleapis": "^2.0.2"
   }

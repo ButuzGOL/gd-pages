@@ -1,4 +1,5 @@
 # Google Drive Pages [![Build Status](https://travis-ci.org/ButuzGOL/gd-pages.svg?branch=master)](https://travis-ci.org/ButuzGOL/gd-pages)
+Publish your static files to Google Drive server and share
 
 ## Install
 
