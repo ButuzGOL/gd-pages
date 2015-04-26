@@ -26,6 +26,8 @@
     "website"
   ],
   "dependencies": {
-    "googleapis": "^2.0.2"
+    "googleapis": "^2.0.2",
+    "mime": "^1.3.4",
+    "walk": "^2.3.9"
   }
 }
