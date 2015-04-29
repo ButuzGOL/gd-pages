@@ -9,16 +9,10 @@ var chalk = require('chalk');
 var figures = require('figures');
 var spinner = require('char-spinner');
 
-var drive = googleapis.drive('v2');
-
-// var SERVICE_ACCOUNT_EMAIL = '525918832864-8om6ltm23s2ep4l5qlqorsnm8cu7l16q@developer.gserviceaccount.com';
-// var SERVICE_ACCOUNT_KEY_FILE = './key.pem';
-
-// var folderName = 'test';
-// var folderPath = '/Users/butuzgol/Downloads/html5-boilerplate_v5.1.0';
-
 module.exports = function(serviceAccountEmail, pathToKeyFile, folderPath,
   folderName) {
+
+  var drive = googleapis.drive('v2');
   var scope = ['https://www.googleapis.com/auth/drive'];
 
   var jwt = new googleapis.auth.JWT(
