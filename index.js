@@ -5,156 +5,225 @@ var fs = require('fs');
 var walk = require('walk');
 var mime = require('mime');
 
+var chalk = require('chalk');
+var figures = require('figures');
+var spinner = require('char-spinner');
+
 var drive = googleapis.drive('v2');
 
-var SERVICE_ACCOUNT_EMAIL = '525918832864-8om6ltm23s2ep4l5qlqorsnm8cu7l16q@developer.gserviceaccount.com';
-var SERVICE_ACCOUNT_KEY_FILE = './key.pem';
-var SCOPE = ['https://www.googleapis.com/auth/drive'];
+// var SERVICE_ACCOUNT_EMAIL = '525918832864-8om6ltm23s2ep4l5qlqorsnm8cu7l16q@developer.gserviceaccount.com';
+// var SERVICE_ACCOUNT_KEY_FILE = './key.pem';
 
-var folderName = 'test';
-var folderPath = '/Users/butuzgol/Downloads/html5-boilerplate_v5.1.0';
+// var folderName = 'test';
+// var folderPath = '/Users/butuzgol/Downloads/html5-boilerplate_v5.1.0';
 
-var jwt = new googleapis.auth.JWT(
-  SERVICE_ACCOUNT_EMAIL,
-  SERVICE_ACCOUNT_KEY_FILE,
-  null,
-  SCOPE
-);
+module.exports = function(serviceAccountEmail, pathToKeyFile, folderPath,
+  folderName) {
+  var scope = ['https://www.googleapis.com/auth/drive'];
 
-var authorize = function() {
-  return new Promise(function(resolve, reject) {
-    jwt.authorize(function(err, tokens) {
-      if (err) return reject(err);
+  var jwt = new googleapis.auth.JWT(
+    serviceAccountEmail,
+    pathToKeyFile,
+    null,
+    scope
+  );
 
-      jwt.credentials = tokens;
+  var time = new Date().getTime();
 
-      resolve();
+  var log = function() {
+    var args = Array.prototype.slice.call(arguments);
+    var newTime = new Date().getTime();
+    args.push(chalk.bgBlue('+' + (newTime - time) + 'ms'));
+
+    time = newTime;
+
+    console.log.apply(console, args);
+  };
+
+  var logSuccess = function(text) {
+    log(text, figures.tick);
+  };
+
+  var logError = function(text) {
+    log(chalk.red(text, figures.cross));
+  };
+
+  var folderExists = function() {
+    return new Promise(function(resolve, reject) {
+      fs.exists(folderPath, function(exists) {
+        if (!exists) reject('Folder not exists');
+
+        resolve();
+      });
     });
-  });
-};
+  };
 
-var deleteFolder = function(id) {
-  return new Promise(function(resolve, reject) {
-    drive.files.delete({ auth: jwt, fileId: id }, function(err) {
-      if (err) return reject(err);
+  var authorize = function() {
+    return new Promise(function(resolve, reject) {
+      jwt.authorize(function(err, tokens) {
+        if (err) return reject(err);
 
-      resolve();
+        jwt.credentials = tokens;
+
+        logSuccess('Authorized');
+
+        resolve();
+      });
     });
-  });
-};
+  };
 
-var checkIfFolderExists = function() {
-  return new Promise(function(resolve, reject) {
+  var deleteFolder = function(id) {
+    return new Promise(function(resolve, reject) {
+      drive.files.delete({ auth: jwt, fileId: id }, function(err) {
+        if (err) return reject(err);
 
-    drive.files.list({
-      auth: jwt,
-      q: 'title = "' + folderName + '"' +
-         ' and mimeType = "application/vnd.google-apps.folder"',
-      fields: 'items/id',
-    }, function(err, res) {
-      if (err) return reject(err);
+        logSuccess('Folder deleted');
 
-      if (res.items.length)
-        return deleteFolder(res.items[0].id).then(resolve, reject);
-
-      resolve();
+        resolve();
+      });
     });
-  });
-};
+  };
 
-var createFolder = function() {
-  return new Promise(function(resolve, reject) {
-    drive.files.insert({
-      auth: jwt,
-      resource: {
-        mimeType: 'application/vnd.google-apps.folder',
-        title: folderName
-      }
-    }, function(err, res) {
-      if (err) return reject(err);
+  var folderExistsOnGD = function() {
+    return new Promise(function(resolve, reject) {
 
-      resolve(res.id);
+      drive.files.list({
+        auth: jwt,
+        q: 'title = "' + folderName + '"' +
+           ' and mimeType = "application/vnd.google-apps.folder"',
+        fields: 'items/id',
+      }, function(err, res) {
+        if (err) return reject(err);
+
+        if (res.items.length) {
+          console.log('Folder exists');
+          return deleteFolder(res.items[0].id).then(resolve, reject);
+        }
+
+        resolve();
+      });
     });
-  });
-};
+  };
 
-var uploadFolder = function(id) {
-  return new Promise(function(resolve, reject) {
-    var folderMapper = {};
-    var walker = walk.walk(folderPath);
-
-    folderMapper[folderPath] = id;
-
-    walker.on("directory", function(root, folderStat, next) {
+  var createFolder = function() {
+    return new Promise(function(resolve, reject) {
       drive.files.insert({
         auth: jwt,
         resource: {
           mimeType: 'application/vnd.google-apps.folder',
-          title: folderStat.name,
-          parents: [ { id: folderMapper[root] } ]
+          title: folderName
         }
       }, function(err, res) {
         if (err) return reject(err);
 
-        folderMapper[root + '/' + folderStat.name] = res.id;
+        logSuccess('Folder created');
 
-        next();
+        resolve(res.id);
       });
     });
+  };
 
-    walker.on("file", function(root, fileStat, next) {
-      var fullPath = root + '/' + fileStat.name;
-      var mimeType = mime.lookup(fullPath);
+  var uploadFolder = function(id) {
+    return new Promise(function(resolve, reject) {
+      var folderMapper = {};
+      var walker = walk.walk(folderPath);
 
-      drive.files.insert({
+      console.log(chalk.yellow.bold('Start uploading folder', figures.ellipsis));
+
+      folderMapper[folderPath] = id;
+
+      walker.on('directory', function(root, stat, next) {
+        drive.files.insert({
+          auth: jwt,
+          resource: {
+            mimeType: 'application/vnd.google-apps.folder',
+            title: stat.name,
+            parents: [ { id: folderMapper[root] } ]
+          }
+        }, function(err, res) {
+          if (err) return reject(err);
+
+          folderMapper[root + '/' + stat.name] = res.id;
+
+          var prefix = root.replace(folderPath, '');
+          console.log('Empty folder created',
+            ((prefix) ? (prefix + '/') : '') + stat.name);
+
+          next();
+        });
+      });
+
+      walker.on('file', function(root, stat, next) {
+        var fullPath = root + '/' + stat.name;
+        var mimeType = mime.lookup(fullPath);
+
+        drive.files.insert({
+          auth: jwt,
+          resource: {
+            title: stat.name,
+            mimeType: mimeType,
+            parents: [ { id: folderMapper[root] } ]
+          },
+          media: {
+            mimeType: mimeType,
+            body: fs.createReadStream(fullPath)
+          },
+        }, function(err, resp) {
+          if (err) return reject(err);
+
+          var prefix = root.replace(folderPath, '');
+          console.log('File uploaded',
+            ((prefix) ? (prefix + '/') : '') + stat.name);
+
+          next();
+        });
+      });
+
+      walker.on('end', function() {
+
+        logSuccess('Uploading done');
+
+        resolve(id);
+      });
+    });
+  };
+
+  var share = function(id) {
+    return new Promise(function(resolve, reject) {
+      drive.permissions.insert({
         auth: jwt,
+        fileId: id,
         resource: {
-          title: fileStat.name,
-          mimeType: mimeType,
-          parents: [ { id: folderMapper[root] } ]
-        },
-        media: {
-          mimeType: mimeType,
-          body: fs.createReadStream(fullPath)
-        },
-      }, function(err, resp) {
+          type: 'anyone',
+          role: 'reader'
+        }
+      }, function(err, res) {
         if (err) return reject(err);
 
-        next();
+        logSuccess('Shared');
+
+        resolve(id);
       });
     });
+  };
 
-    walker.on("end", function () {
-      resolve(id);
+  var spinnerInterval = spinner();
+
+  folderExists()
+    .then(authorize)
+    .then(folderExistsOnGD)
+    .then(createFolder)
+    .then(uploadFolder)
+    .then(share)
+    .then(function(id) {
+      clearInterval(spinnerInterval);
+
+      console.log('Your link:',
+        chalk.underline('https://www.googledrive.com/host/' + id));
+    })
+    .catch(function(err) {
+      clearInterval(spinnerInterval);
+
+      logError(err);
     });
-  });
 };
-
-var share = function(id) {
-  return new Promise(function(resolve, reject) {
-    drive.permissions.insert({
-      auth: jwt,
-      fileId: id,
-      resource: {
-        type: 'anyone',
-        role: 'reader'
-      }
-    }, function(err, res) {
-      if (err) return reject(err);
-
-      resolve(id);
-    });
-  });
-};
-
-authorize()
-  .then(checkIfFolderExists)
-  .then(createFolder)
-  .then(uploadFolder)
-  .then(share)
-  .then(function(id) {
-    console.log('Your link: https://www.googledrive.com/host/' + id);
-  })
-  .catch(function(err) {
-    console.log(err);
-  });
