@@ -13,11 +13,9 @@
     "node": ">=0.10.0"
   },
   "bin": {
-    "gd-pages": "cli.js"
+    "gd-pages": "./cli.js"
   },
-  "files": [
-    "index.js"
-  ],
+  "main" : "./index.js",
   "keywords": [
     "static",
     "server",
