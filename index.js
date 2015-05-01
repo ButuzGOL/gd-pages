@@ -219,5 +219,7 @@ module.exports = function(serviceAccountEmail, pathToKeyFile, folderPath,
       clearInterval(spinnerInterval);
 
       logError(err);
+
+      process.exit(1);
     });
 };

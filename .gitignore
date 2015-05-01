@@ -1,4 +1,6 @@
+dist
+
 node_modules
 
-key.p12
-key.pem
+*.p12
+*.pem
