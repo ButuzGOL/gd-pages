@@ -1,6 +1,6 @@
 {
   "name": "gd-pages",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Publish your static files to Google Drive server and share",
   "license": "MIT",
   "repository": "ButuzGOL/gd-pages",
