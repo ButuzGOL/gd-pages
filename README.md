@@ -1,6 +1,6 @@
-# Google Drive Pages [![Build Status](https://travis-ci.org/ButuzGOL/gd-pages.svg?branch=master)](https://travis-ci.org/ButuzGOL/gd-pages)
+# Google Drive Pages [![Build Status](https://travis-ci.org/ButuzGOL/gd-pages.svg?branch=master)](https://travis-ci.org/ButuzGOL/gd-pages) [![Join the chat at https://gitter.im/ButuzGOL/gd-pages](https://badges.gitter.im/Join%20Chat.svg)](https://gitter.im/ButuzGOL/gd-pages?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
 
-[![Join the chat at https://gitter.im/ButuzGOL/gd-pages](https://badges.gitter.im/Join%20Chat.svg)](https://gitter.im/ButuzGOL/gd-pages?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
+
 Publish your static files to Google Drive server and share  
 Inspired by [Host webpages with Drive](https://support.google.com/drive/answer/2881970?hl=en)
 ## Install
