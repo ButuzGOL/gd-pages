@@ -11,7 +11,8 @@ var gdPages = require('./');
 
 program
   .version(pkg.version)
-  .usage('<serviceAccountEmail> <pathToKeyFile> <folderPath> <folderName>');
+  .usage('<serviceAccountEmail> <pathToKeyFile> <folderPath> <folderName>' +
+    ' [subFolderName]');
 
 program.on('--help', function(){
   console.log('  Example:');
@@ -22,8 +23,8 @@ program.on('--help', function(){
 
 program.parse(process.argv);
 
-if (program.args.length != 4) {
-   console.error('You should specify four arguments, use --help');
+if (program.args.length < 4) {
+   console.error('You should specify at least four arguments, use --help');
    process.exit(1);
 }
 

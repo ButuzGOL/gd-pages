@@ -9,8 +9,8 @@ var chalk = require('chalk');
 var figures = require('figures');
 var spinner = require('char-spinner');
 
-module.exports = function(serviceAccountEmail, pathToKeyFile, folderPath,
-  folderName) {
+module.exports = function(serviceAccountEmail, pathToKeyFile,
+  folderPath, folderName, subFolderName) {
 
   var drive = googleapis.drive('v2');
   var scope = ['https://www.googleapis.com/auth/drive'];
@@ -42,7 +42,7 @@ module.exports = function(serviceAccountEmail, pathToKeyFile, folderPath,
     log(chalk.red(text, figures.cross));
   };
 
-  var folderExists = function() {
+  var projectFolderExists = function() {
     return new Promise(function(resolve, reject) {
       fs.exists(folderPath, function(exists) {
         if (!exists) reject('Folder not exists');
@@ -68,52 +68,92 @@ module.exports = function(serviceAccountEmail, pathToKeyFile, folderPath,
 
   var deleteFolder = function(id) {
     return new Promise(function(resolve, reject) {
-      drive.files.delete({ auth: jwt, fileId: id }, function(err) {
-        if (err) return reject(err);
-
-        logSuccess('Folder deleted');
-
-        resolve();
-      });
-    });
-  };
-
-  var folderExistsOnGD = function() {
-    return new Promise(function(resolve, reject) {
-
-      drive.files.list({
+      drive.files.delete({
         auth: jwt,
-        q: 'title = "' + folderName + '"' +
-           ' and mimeType = "application/vnd.google-apps.folder"',
-        fields: 'items/id',
-      }, function(err, res) {
+        fileId: id
+      }, function(err) {
         if (err) return reject(err);
 
-        if (res.items.length) {
-          console.log('Folder exists');
-          return deleteFolder(res.items[0].id).then(resolve, reject);
-        }
+        logSuccess('Folder deleted ' + id);
 
         resolve();
       });
     });
   };
 
-  var createFolder = function() {
+  var createFolder = function(name, parentId) {
     return new Promise(function(resolve, reject) {
       drive.files.insert({
         auth: jwt,
         resource: {
           mimeType: 'application/vnd.google-apps.folder',
-          title: folderName
+          title: name,
+          parents: (parentId) ? [ { id: parentId } ] : null
         }
       }, function(err, res) {
         if (err) return reject(err);
 
-        logSuccess('Folder created');
+        logSuccess('Folder created ' + name + ' ' + res.id);
 
         resolve(res.id);
       });
+    });
+  };
+
+  var folderExists = function(name, parentId) {
+    return new Promise(function(resolve, reject) {
+      var q = 'title = "' + name + '"' +
+        ' and "' + ((parentId) ? parentId : 'root') + '" in parents' +
+        ' and mimeType = "application/vnd.google-apps.folder"';
+
+      drive.files.list({
+        auth: jwt,
+        q: q,
+        fields: 'items/id'
+      }, function(err, res) {
+        if (err) return reject(err);
+
+        if (res.items.length) {
+          console.log('Folder exists %s', name);
+          resolve(res.items[0].id);
+        } else {
+          console.log('Folder not exists %s', name);
+          resolve(null);
+        }
+      });
+    });
+  };
+
+  var handleFolder = function() {
+    return new Promise(function(resolve, reject) {
+      folderExists(folderName)
+        .then(function(id) {
+          if (id) {
+            if (!subFolderName) return deleteFolder(id);
+            else return id;
+          }
+
+          return null;
+        })
+        .then(function(id) {
+          if (id) return id;
+
+          return createFolder(folderName);
+        })
+        .then(function(id) {
+          if (!subFolderName) return resolve(id);
+
+          return folderExists(subFolderName, id)
+            .then(function(id) {
+              if (id) return deleteFolder(id);
+            })
+            .then(function() {
+              return createFolder(subFolderName, id);
+            })
+            .then(resolve)
+            .catch(reject);
+        })
+        .catch(reject);
     });
   };
 
@@ -203,10 +243,9 @@ module.exports = function(serviceAccountEmail, pathToKeyFile, folderPath,
 
   var spinnerInterval = spinner();
 
-  folderExists()
+  projectFolderExists()
     .then(authorize)
-    .then(folderExistsOnGD)
-    .then(createFolder)
+    .then(handleFolder)
     .then(uploadFolder)
     .then(share)
     .then(function(id) {
