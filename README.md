@@ -32,7 +32,7 @@ It waits for 4 parameters:
 1. Service account -> Email address  
 2. Path to pem file  
 3. Path to folder for upload  
-4. Folder name
+4. Folder name  
 5. Sub folder (optional) can be useful for example: project-name/dev
 
 ```sh
